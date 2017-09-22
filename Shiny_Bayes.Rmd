@@ -1,0 +1,73 @@
+---
+title: "Bayesian Simulation"
+author: "Dustin Pluta"
+date: "September 22, 2017"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Beta Binomial 
+
+Suppose we observe a random sample $\textbf{X} = X_1, X_2, \cdots, X_n$ iid from $Bern(\theta)$, 
+and assume prior $p(\theta) \sim Beta(\alpha, \beta)$.
+
+$$p(\theta) \propto \theta^{\alpha - 1}(1 - \theta)^{\beta - 1}$$
+
+$$\mathcal{L}(\theta | \textbf{X}) \propto \theta^{\sum X_i}(1 - \theta)^{n - \sum X_i}$$
+
+$$p(\theta | \textbf{X}) \propto \theta^{\alpha + \sum X_i - 1}(1 - \theta)^{\beta + n - \sum X_i - 1}.$$
+
+## Simulation Code
+
+This function calculates the Bernoulli likelihood for a vector of $\theta$s and 
+observed data $\textbf{X}$
+
+```{r lik_bern, echo = TRUE}
+lik_bern <- function(thetas, X) {
+  wins <- sum(X)
+  fails <- length(X) - sum(X)
+  results <- c()
+  for (k in 1:length(thetas))
+    results[k] <- prod(thetas[k]^wins * (1 - thetas[k])^fails)
+  return(results)
+}
+```
+
+This is our plotting function written earlier.
+
+```{r plot_bayes, echo = TRUE}
+plot_bayes <- function(X, alpha, beta) {
+  par(mfrow = c(2, 2))
+  curve(dbeta(x, alpha, beta), from = 0, to = 1, main = "Prior")
+  barplot(table(X))
+  curve(dbeta(x, alpha + sum(X), beta + length(X) - sum(X) ), from = 0, to = 1, main = "Posterior")
+  curve(lik_bern(x, X), from = 0, to = 1, main = "Likelihood")
+}
+```
+
+## Interactive Simulation
+
+```{r}
+inputPanel(
+  numericInput("alpha", label = "alpha",
+               min = 1, max = 10000, value = 1),
+  numericInput("beta", label = "beta",
+               min = 1, max = 10000, value = 1),
+  numericInput("n", label = "n",
+               min = 1, max = 10000, value = 20),
+  numericInput("theta", label = "theta:",
+               min = 0, max = 1, value = 0.5, step = 0.05)
+)
+
+renderPlot({
+  X <- rbinom(input$n, 1, input$theta)
+  plot_bayes(X, input$alpha, input$beta)
+}, height = 1000, width = 1000)
+```
+
+
+
